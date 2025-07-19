@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/transacciones")
-@CrossOrigin(origins = { "http://localhost:5173/", "http://127.0.0.1:5173" })
+@CrossOrigin(origins = { "http://localhost:5173/", "http://127.0.0.1:5173", "https://2024-qwerty-front-final.vercel.app/"})
 public class TransaccionesController {
 
     private final TransaccionesService transaccionesService;

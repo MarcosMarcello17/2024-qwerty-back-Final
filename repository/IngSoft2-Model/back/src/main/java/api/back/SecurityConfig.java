@@ -24,7 +24,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfiguration = new org.springframework.web.cors.CorsConfiguration();
                     corsConfiguration.setAllowedOrigins(
-                            List.of("https://2024-qwerty-front-2.vercel.app/", "http://localhost:5173", "http://127.0.0.1:5173"));
+                            List.of("https://2024-qwerty-front-final.vercel.app/", "http://localhost:5173", "http://127.0.0.1:5173"));
                     corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfiguration.setAllowedHeaders(List.of("*"));
                     corsConfiguration.setAllowCredentials(true);
