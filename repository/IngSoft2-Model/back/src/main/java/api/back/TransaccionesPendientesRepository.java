@@ -13,4 +13,6 @@ public interface TransaccionesPendientesRepository extends JpaRepository<Transac
     Optional<TransaccionesPendientes> findByIdAndUserId(Long id, Long userId);
 
     List<TransaccionesPendientes> findByGrupoId(Long grupoId);
+
+    List<TransaccionesPendientes> findBySentByEmail(String email);
 }

@@ -48,6 +48,16 @@ public class TransaccionesPendientesController {
         return ResponseEntity.ok(pendingTransactions);
     }
 
+    @GetMapping("/sentByUser")
+    public ResponseEntity<List<TransaccionesPendientes>> getPendingTransaccionesSentByUser(Authentication authentication) {
+        String email = authentication.getName();
+        List<TransaccionesPendientes> pendingTransactions = transaccionesPendientesService
+                .getPendingTransaccionesSentByUser(email);
+
+        // Retornar una lista vacía si no hay transacciones pendientes
+        return ResponseEntity.ok(pendingTransactions);
+    }
+
     // Endpoint para eliminar una transacción pendiente por ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePendingTransaccion(@PathVariable Long id, Authentication authentication) {
