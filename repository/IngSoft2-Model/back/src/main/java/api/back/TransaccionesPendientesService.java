@@ -17,10 +17,6 @@ public class TransaccionesPendientesService {
         return transaccionesPendientesRepository.save(transaccionPendiente);
     }
 
-    public List<TransaccionesPendientes> getPendingTransaccionesSentByUser(String email){
-        return transaccionesPendientesRepository.findBySentByEmail(email);
-    }
-
     public List<TransaccionesPendientes> getPendingTransaccionesByUserId(Long userId) {
         // Retorna todas las transacciones pendientes para el usuario dado
         return transaccionesPendientesRepository.findByUserId(userId);
