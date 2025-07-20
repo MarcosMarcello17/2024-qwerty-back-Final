@@ -75,9 +75,20 @@ public class AutomationService {
         String mesFormatoComparacion = fecha.format(DateTimeFormatter.ofPattern("yyyy-MM"));
         
         for (Budget presupuesto : todosLosPresupuestos) {
-            if (presupuesto.getBudgetMonth() != null && 
-                presupuesto.getBudgetMonth().equals(mesFormatoComparacion)) {
-                presupuestosDelMes.add(presupuesto);
+            if (presupuesto.getBudgetMonth() != null) {
+                // Extraer solo YYYY-MM del budget_month que puede tener formato completo
+                String budgetMonthStr = presupuesto.getBudgetMonth();
+                
+                // Si el budget_month contiene una fecha completa, extraer solo YYYY-MM
+                if (budgetMonthStr.length() >= 7) {
+                    String budgetYearMonth = budgetMonthStr.substring(0, 7); // Obtener YYYY-MM
+                    if (budgetYearMonth.equals(mesFormatoComparacion)) {
+                        presupuestosDelMes.add(presupuesto);
+                    }
+                } else if (budgetMonthStr.equals(mesFormatoComparacion)) {
+                    // Si ya está en formato YYYY-MM, comparar directamente
+                    presupuestosDelMes.add(presupuesto);
+                }
             }
         }
         
@@ -148,12 +159,26 @@ public class AutomationService {
         try {
             User user = userService.findByEmail(userEmail);
             if (user == null) {
+                System.out.println("DEBUG: Usuario no encontrado: " + userEmail);
                 return false;
             }
             
             List<Budget> presupuestosDelMes = obtenerPresupuestosDelMes(user, fecha);
+            
+            // Debug: mostrar información
+            String mesComparacion = fecha.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            System.out.println("DEBUG: Buscando presupuestos para el mes: " + mesComparacion);
+            System.out.println("DEBUG: Presupuestos encontrados: " + presupuestosDelMes.size());
+            
+            for (Budget budget : presupuestosDelMes) {
+                System.out.println("DEBUG: Presupuesto encontrado - Nombre: " + budget.getNameBudget() + 
+                                 ", Mes: " + budget.getBudgetMonth());
+            }
+            
             return !presupuestosDelMes.isEmpty();
         } catch (Exception e) {
+            System.err.println("ERROR en puedeDistribuirAutomaticamente: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
