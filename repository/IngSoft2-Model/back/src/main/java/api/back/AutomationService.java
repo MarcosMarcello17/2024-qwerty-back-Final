@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,13 +49,26 @@ public class AutomationService {
                 return transaccionesCreadas;
             }
 
-            // Para cada presupuesto del mes, distribuir proporcionalmente
+            // Crear un mapa consolidado con todas las categorías y sus montos totales
+            Map<String, Integer> categoriasConsolidadas = new HashMap<>();
+            
             for (Budget presupuesto : presupuestosDelMes) {
-                List<Transacciones> transaccionesPresupuesto = distribuirSegunPresupuesto(
-                    presupuesto, montoIngreso, fechaIngreso, userEmail, motivoOriginal
-                );
-                transaccionesCreadas.addAll(transaccionesPresupuesto);
+                Map<String, Integer> categoryBudgets = presupuesto.getCategoryBudgets();
+                if (categoryBudgets != null) {
+                    for (Map.Entry<String, Integer> entry : categoryBudgets.entrySet()) {
+                        String categoria = entry.getKey();
+                        Integer monto = entry.getValue();
+                        
+                        // Sumar al total de esta categoría (si ya existe)
+                        categoriasConsolidadas.merge(categoria, monto, Integer::sum);
+                    }
+                }
             }
+
+            // Distribuir según las categorías consolidadas
+            transaccionesCreadas = distribuirSegunCategoriasConsolidadas(
+                categoriasConsolidadas, montoIngreso, fechaIngreso, userEmail, motivoOriginal
+            );
 
         } catch (Exception e) {
             System.err.println("Error en distribución automática: " + e.getMessage());
@@ -96,7 +110,62 @@ public class AutomationService {
     }
 
     /**
+     * Distribuye el monto según las categorías consolidadas de todos los presupuestos del mes
+     */
+    private List<Transacciones> distribuirSegunCategoriasConsolidadas(Map<String, Integer> categoriasConsolidadas, 
+                                                                     Double montoTotal, LocalDate fecha, 
+                                                                     String userEmail, String motivoOriginal) {
+        List<Transacciones> transacciones = new ArrayList<>();
+        
+        if (categoriasConsolidadas == null || categoriasConsolidadas.isEmpty()) {
+            return transacciones;
+        }
+
+        // Calcular total consolidado de todas las categorías
+        int totalPresupuestoConsolidado = categoriasConsolidadas.values().stream().mapToInt(Integer::intValue).sum();
+        
+        if (totalPresupuestoConsolidado <= 0) {
+            return transacciones;
+        }
+
+        // Distribuir proporcionalmente por cada categoría consolidada
+        for (Map.Entry<String, Integer> entry : categoriasConsolidadas.entrySet()) {
+            String categoria = entry.getKey();
+            Integer presupuestoCategoria = entry.getValue();
+            
+            if (presupuestoCategoria > 0) {
+                // Calcular porcentaje de esta categoría respecto al total consolidado
+                double porcentaje = (double) presupuestoCategoria / totalPresupuestoConsolidado;
+                
+                // Calcular monto proporcional
+                double montoCategoria = montoTotal * porcentaje;
+                
+                // Redondear a 2 decimales
+                montoCategoria = Math.round(montoCategoria * 100.0) / 100.0;
+                
+                if (montoCategoria > 0) {
+                    // Crear transacción para esta categoría
+                    Transacciones transaccion = new Transacciones();
+                    transaccion.setValor(montoCategoria);
+                    transaccion.setCategoria(categoria);
+                    transaccion.setFecha(fecha);
+                    transaccion.setTipoGasto("Distribución Automática");
+                    transaccion.setMotivo("Distribución automática de: " + motivoOriginal + 
+                                        " (" + String.format("%.1f", porcentaje * 100) + "% del presupuesto consolidado)");
+                    
+                    // Guardar la transacción
+                    Transacciones transaccionGuardada = transaccionesService.createTransaccion(transaccion, userEmail);
+                    transacciones.add(transaccionGuardada);
+                }
+            }
+        }
+        
+        return transacciones;
+    }
+
+    /**
      * Distribuye el monto según las categorías de un presupuesto específico
+     * @deprecated Usar distribuirSegunCategoriasConsolidadas en su lugar
      */
     private List<Transacciones> distribuirSegunPresupuesto(Budget presupuesto, Double montoTotal, 
                                                           LocalDate fecha, String userEmail, String motivoOriginal) {
@@ -211,31 +280,45 @@ public class AutomationService {
             preview.setFecha(fecha);
             preview.setPuedeDistribuir(true);
 
+            // Crear un mapa consolidado con todas las categorías y sus montos totales
+            Map<String, Integer> categoriasConsolidadas = new HashMap<>();
+            
             for (Budget presupuesto : presupuestosDelMes) {
-                DistributionPreview.BudgetDistribution budgetDist = preview.new BudgetDistribution();
-                budgetDist.setNombrePresupuesto(presupuesto.getNameBudget());
-                
                 Map<String, Integer> categoryBudgets = presupuesto.getCategoryBudgets();
-                if (categoryBudgets != null && !categoryBudgets.isEmpty()) {
-                    int totalPresupuesto = categoryBudgets.values().stream().mapToInt(Integer::intValue).sum();
-                    
+                if (categoryBudgets != null) {
                     for (Map.Entry<String, Integer> entry : categoryBudgets.entrySet()) {
                         String categoria = entry.getKey();
-                        Integer presupuestoCategoria = entry.getValue();
+                        Integer monto = entry.getValue();
                         
-                        if (presupuestoCategoria > 0) {
-                            double porcentaje = (double) presupuestoCategoria / totalPresupuesto;
-                            double montoCategoria = montoIngreso * porcentaje;
-                            montoCategoria = Math.round(montoCategoria * 100.0) / 100.0;
-                            
-                            DistributionPreview.CategoryDistribution catDist = preview.new CategoryDistribution();
-                            catDist.setCategoria(categoria);
-                            catDist.setMonto(montoCategoria);
-                            catDist.setPorcentaje(porcentaje * 100);
-                            catDist.setPresupuestoCategoria(presupuestoCategoria);
-                            
-                            budgetDist.getCategorias().add(catDist);
-                        }
+                        // Sumar al total de esta categoría (si ya existe)
+                        categoriasConsolidadas.merge(categoria, monto, Integer::sum);
+                    }
+                }
+            }
+
+            // Calcular distribución basada en categorías consolidadas
+            if (!categoriasConsolidadas.isEmpty()) {
+                int totalPresupuestoConsolidado = categoriasConsolidadas.values().stream().mapToInt(Integer::intValue).sum();
+                
+                DistributionPreview.BudgetDistribution budgetDist = preview.new BudgetDistribution();
+                budgetDist.setNombrePresupuesto("Distribución Consolidada (" + presupuestosDelMes.size() + " presupuesto(s))");
+                
+                for (Map.Entry<String, Integer> entry : categoriasConsolidadas.entrySet()) {
+                    String categoria = entry.getKey();
+                    Integer presupuestoCategoria = entry.getValue();
+                    
+                    if (presupuestoCategoria > 0) {
+                        double porcentaje = (double) presupuestoCategoria / totalPresupuestoConsolidado;
+                        double montoCategoria = montoIngreso * porcentaje;
+                        montoCategoria = Math.round(montoCategoria * 100.0) / 100.0;
+                        
+                        DistributionPreview.CategoryDistribution catDist = preview.new CategoryDistribution();
+                        catDist.setCategoria(categoria);
+                        catDist.setMonto(montoCategoria);
+                        catDist.setPorcentaje(porcentaje * 100);
+                        catDist.setPresupuestoCategoria(presupuestoCategoria);
+                        
+                        budgetDist.getCategorias().add(catDist);
                     }
                 }
                 
