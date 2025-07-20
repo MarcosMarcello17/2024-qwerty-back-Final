@@ -29,7 +29,7 @@ public class RecurringTransaction {
         this.categoria = categoria;
         this.tipoGasto = tipoGasto;
         this.frecuencia = frecuencia;
-        this.nextExecution = nextExecution;
+        this.nextExecution = nextExecution != null ? nextExecution : LocalDate.now();
         this.user = user;
     }
 

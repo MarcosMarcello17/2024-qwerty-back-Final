@@ -32,4 +32,11 @@ public class RecurringTransactionController {
         recurringTransactionService.deleteRecurringTransaction(id, email);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/process")
+    public ResponseEntity<List<Transacciones>> processRecurringTransactions(Authentication authentication) {
+        String email = authentication.getName();
+        List<Transacciones> createdTransactions = recurringTransactionService.processRecurringTransactions(email);
+        return ResponseEntity.ok(createdTransactions);
+    }
 }
