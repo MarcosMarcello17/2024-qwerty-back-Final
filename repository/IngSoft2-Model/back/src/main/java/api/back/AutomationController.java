@@ -48,6 +48,34 @@ public class AutomationController {
     }
 
     /**
+     * Endpoint para distribuir automáticamente un ingreso existente por ID
+     */
+    @PostMapping("/distribuir/{transaccionId}")
+    public ResponseEntity<?> distribuirIngresoExistente(@PathVariable Long transaccionId, Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            
+            List<Transacciones> transaccionesCreadas = automationService.distribuirIngresoExistente(
+                transaccionId,
+                userEmail
+            );
+
+            return ResponseEntity.ok().body(Map.of(
+                "success", true,
+                "message", "Distribución realizada exitosamente",
+                "transaccionesCreadas", transaccionesCreadas.size(),
+                "transacciones", transaccionesCreadas
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * Endpoint para verificar si se puede distribuir automáticamente
      */
     @GetMapping("/puede-distribuir")

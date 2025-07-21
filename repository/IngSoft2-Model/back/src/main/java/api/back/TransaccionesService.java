@@ -129,6 +129,14 @@ public class TransaccionesService {
         }
         return transaccionesRepository.findByUserIdOrderByFechaDesc(userId);
     }
+
+    public Transacciones findByIdAndUserId(Long id, Long userId) {
+        return transaccionesRepository.findByIdAndUserId(id, userId).orElse(null);
+    }
+
+    public Transacciones saveTransaccion(Transacciones transaccion) {
+        return transaccionesRepository.save(transaccion);
+    }
     
 
 }

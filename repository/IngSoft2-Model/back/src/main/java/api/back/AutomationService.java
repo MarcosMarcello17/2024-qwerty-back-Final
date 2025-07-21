@@ -79,6 +79,60 @@ public class AutomationService {
     }
 
     /**
+     * Distribuye automáticamente un ingreso específico por ID si no ha sido distribuido previamente
+     * @param transaccionId ID de la transacción a distribuir
+     * @param userEmail Email del usuario
+     * @return Lista de transacciones creadas para la distribución
+     */
+    public List<Transacciones> distribuirIngresoExistente(Long transaccionId, String userEmail) {
+        List<Transacciones> transaccionesCreadas = new ArrayList<>();
+        
+        try {
+            // Obtener el usuario
+            User user = userService.findByEmail(userEmail);
+            if (user == null) {
+                throw new RuntimeException("Usuario no encontrado");
+            }
+
+            // Buscar la transacción por ID y verificar que pertenezca al usuario
+            Transacciones transaccionOriginal = transaccionesService.findByIdAndUserId(transaccionId, user.getId());
+            if (transaccionOriginal == null) {
+                throw new RuntimeException("Transacción no encontrada o no pertenece al usuario");
+            }
+
+            // Verificar si es una transacción de ingreso
+            if (!"Ingreso de Dinero".equals(transaccionOriginal.getCategoria())) {
+                throw new RuntimeException("Solo se pueden distribuir transacciones de 'Ingreso de Dinero'");
+            }
+
+            // Verificar si ya fue distribuida
+            if (Boolean.TRUE.equals(transaccionOriginal.getDistribuida())) {
+                throw new RuntimeException("Esta transacción ya ha sido distribuida automáticamente");
+            }
+
+            // Distribuir el ingreso
+            transaccionesCreadas = distribuirIngresoAutomaticamente(
+                transaccionOriginal.getValor(),
+                transaccionOriginal.getFecha(),
+                userEmail,
+                transaccionOriginal.getMotivo()
+            );
+
+            // Marcar la transacción original como distribuida si la distribución fue exitosa
+            if (!transaccionesCreadas.isEmpty()) {
+                transaccionOriginal.setDistribuida(true);
+                transaccionesService.saveTransaccion(transaccionOriginal);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error en distribución de ingreso existente: " + e.getMessage());
+            throw new RuntimeException(e.getMessage());
+        }
+
+        return transaccionesCreadas;
+    }
+
+    /**
      * Obtiene los presupuestos activos para el mes de la fecha dada
      */
     private List<Budget> obtenerPresupuestosDelMes(User user, LocalDate fecha) {
