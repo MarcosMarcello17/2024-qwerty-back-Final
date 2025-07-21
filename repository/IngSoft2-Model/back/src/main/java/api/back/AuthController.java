@@ -33,20 +33,17 @@ public class AuthController {
     private final PersonalTipoGastoService personalTipoGastoService;
     private final PersonalCategoriaService personalCategoriaService;
     private final BudgetService budgetService;
-    private final TransaccionesController transaccionesController;
 
     public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, JwtUtil jwtUtil,
             UserService userService, TransaccionesService transaccionesService,
             PasswordResetTokenService passwordResetTokenService, PersonalTipoGastoService personalTipoGastoService,
-            BudgetService budgetService, PersonalCategoriaService personalCategoriaService,
-            TransaccionesController transaccionesController) {
+            BudgetService budgetService, PersonalCategoriaService personalCategoriaService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.personalCategoriaService = personalCategoriaService;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
-        this.transaccionesController = transaccionesController;
         this.userService = userService;
         this.transaccionesService = transaccionesService;
         this.passwordResetTokenService = passwordResetTokenService;
@@ -58,40 +55,83 @@ public class AuthController {
     public ResponseEntity<Void> deleteUser(Authentication authentication) {
         try {
             User user = userService.findByEmail(authentication.getName());
-            List<Budget> presupuestos = budgetService.getPresupuestosByUserId(user);
-            for (Budget presupuesto : presupuestos) {
-                budgetService.deleteBudget(presupuesto.getId());
+            
+            // 1. Eliminar presupuestos
+            try {
+                List<Budget> presupuestos = budgetService.getPresupuestosByUserId(user);
+                for (Budget presupuesto : presupuestos) {
+                    budgetService.deleteBudget(presupuesto.getId());
+                }
+            } catch (Exception e) {
+                System.err.println("Error al eliminar presupuestos: " + e.getMessage());
+                // Continuamos con el proceso
             }
-            List<Transacciones> transacciones = transaccionesService.getTransaccionesByUserId(user.getId());
-            for (Transacciones transaction : transacciones) {
-                transaccionesService.deleteTransaccion(transaction.getId(), user.getEmail());
+            
+            // 2. Eliminar transacciones
+            try {
+                List<Transacciones> transacciones = transaccionesService.getTransaccionesByUserId(user.getId());
+                for (Transacciones transaction : transacciones) {
+                    transaccionesService.deleteTransaccion(transaction.getId(), user.getEmail());
+                }
+            } catch (TransaccionNotFoundException e) {
+                System.err.println("Error al eliminar transacciones: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
-            List<PersonalCategoria> categorias = personalCategoriaService.getPersonalCategoria(user.getEmail());
-            for (PersonalCategoria categoria : categorias) {
-                List<Transacciones> transaccionesUser = transaccionesController.getTransaccionesByUser(authentication);
-                for (Transacciones transaccion : transaccionesUser) {
-                    if (transaccion.getCategoria().equals(categoria.getNombre())) {
-                        transaccion.setCategoria("Otros");
-                        transaccionesController.updateTransaccion(transaccion.getId(), transaccion, authentication);
+            
+            // 3. Actualizar categorías personales y eliminarlas
+            try {
+                List<PersonalCategoria> categorias = personalCategoriaService.getPersonalCategoria(user.getEmail());
+                for (PersonalCategoria categoria : categorias) {
+                    try {
+                        List<Transacciones> transaccionesUser = transaccionesService.getTransaccionesByUserId(user.getId());
+                        for (Transacciones transaccion : transaccionesUser) {
+                            if (transaccion.getCategoria() != null && transaccion.getCategoria().equals(categoria.getNombre())) {
+                                transaccion.setCategoria("Otros");
+                                transaccionesService.saveTransaccion(transaccion);
+                            }
+                        }
+                        personalCategoriaService.findAndDeleteCategoria(user.getEmail(), categoria.getNombre(),
+                                categoria.getIconPath());
+                    } catch (Exception e) {
+                        System.err.println("Error al procesar categoría " + categoria.getNombre() + ": " + e.getMessage());
                     }
                 }
-                personalCategoriaService.findAndDeleteCategoria(user.getEmail(), categoria.getNombre(),
-                        categoria.getIconPath());
+            } catch (Exception e) {
+                System.err.println("Error al eliminar categorías: " + e.getMessage());
+                // Continuamos con el proceso
             }
-            List<PersonalTipoGasto> personalTipoGastos = personalTipoGastoService
-                    .getPersonalTipoGastos(user.getEmail());
-            for (PersonalTipoGasto tipoGasto : personalTipoGastos) {
-                personalTipoGastoService.deletePersonalTipoGasto(tipoGasto.getId());
+            
+            // 4. Eliminar tipos de gasto personales
+            try {
+                List<PersonalTipoGasto> personalTipoGastos = personalTipoGastoService
+                        .getPersonalTipoGastos(user.getEmail());
+                for (PersonalTipoGasto tipoGasto : personalTipoGastos) {
+                    personalTipoGastoService.deletePersonalTipoGasto(tipoGasto.getId());
+                }
+            } catch (Exception e) {
+                System.err.println("Error al eliminar tipos de gasto: " + e.getMessage());
+                // Continuamos con el proceso
             }
-            List<PasswordResetToken> tokens = passwordResetTokenService.getTokensByUser(user);
-            for (PasswordResetToken token : tokens) {
-                passwordResetTokenService.deleteToken(token.getId());
+            
+            // 5. Eliminar tokens de reinicio de contraseña
+            try {
+                List<PasswordResetToken> tokens = passwordResetTokenService.getTokensByUser(user);
+                for (PasswordResetToken token : tokens) {
+                    passwordResetTokenService.deleteToken(token.getId());
+                }
+            } catch (Exception e) {
+                System.err.println("Error al eliminar tokens: " + e.getMessage());
+                // Continuamos con el proceso
             }
+            
+            // 6. Finalmente, eliminar el usuario
             userService.deleteUser(user);
 
             return ResponseEntity.noContent().build();
-        } catch (TransaccionNotFoundException e) {
-            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            System.err.println("Error al eliminar usuario: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
     }
 
