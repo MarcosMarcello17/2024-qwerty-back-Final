@@ -85,7 +85,7 @@ public class AuthControllerTests {
         AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         JwtUtil jwtUtil = mock(JwtUtil.class);
         AuthController authController = new AuthController(null, null,
-                authenticationManager, jwtUtil, null, null, null, null, null, null);
+                authenticationManager, jwtUtil, null, null,  null, null, null, null, null);
 
         when(authenticationManager.authenticate(any(
                 UsernamePasswordAuthenticationToken.class)))
@@ -101,7 +101,7 @@ public class AuthControllerTests {
         String email = "valid@example.com";
         UserService userService = mock(UserService.class);
         AuthController authController = new AuthController(null, null, null, null,
-                userService, null, null, null, null, null);
+                userService, null, null, null, null, null, null);
 
         ResponseEntity<String> response = authController.forgotPassword(email);
 
@@ -115,7 +115,7 @@ public class AuthControllerTests {
     public void test_reset_password_with_valid_token() {
         UserService userService = Mockito.mock(UserService.class);
         AuthController authController = new AuthController(null, null, null, null,
-                userService, null, null, null, null, null);
+                userService, null, null, null, null, null, null);
 
         String validToken = "validToken";
         String newPassword = "newPassword";
@@ -136,7 +136,7 @@ public class AuthControllerTests {
     public void test_reset_password_with_expired_token() {
         UserService userService = Mockito.mock(UserService.class);
         AuthController authController = new AuthController(null, null, null, null, userService, null, null, null, null,
-                null);
+                null, null);
 
         String expiredToken = "expiredToken";
         String newPassword = "newPassword";
