@@ -21,6 +21,7 @@ public class Transacciones {
     private String motivo;
     private String categoria;
     private String tipoGasto;
+    private Boolean distribuida = false; // Indica si esta transacción ya fue distribuida automáticamente
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -97,5 +98,13 @@ public class Transacciones {
 
     public void setTipoGasto(String tipoGasto) {
         this.tipoGasto = tipoGasto;
+    }
+
+    public Boolean getDistribuida() {
+        return distribuida;
+    }
+
+    public void setDistribuida(Boolean distribuida) {
+        this.distribuida = distribuida;
     }
 }

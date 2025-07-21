@@ -85,7 +85,7 @@ public class AuthControllerTests {
         AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         JwtUtil jwtUtil = mock(JwtUtil.class);
         AuthController authController = new AuthController(null, null,
-                authenticationManager, jwtUtil, null, null, null, null, null, null, null);
+                authenticationManager, jwtUtil, null, null,  null, null, null, null, null);
 
         when(authenticationManager.authenticate(any(
                 UsernamePasswordAuthenticationToken.class)))

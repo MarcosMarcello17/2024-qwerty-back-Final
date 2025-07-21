@@ -18,6 +18,9 @@ public class TransaccionesController {
     private final TransaccionesPendientesService transaccionesPendientesService;
 
     @Autowired
+    private AutomationService automationService;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     public TransaccionesController(TransaccionesService transaccionesService, UserService userService,
@@ -49,6 +52,51 @@ public class TransaccionesController {
         User user = userService.findByEmail(email);
         user.setTransaccionesCreadas(user.getTransaccionesCreadas() + 1);
         return transaccionesService.createTransaccion(transaccion, email);
+    }
+
+    @PostMapping("/con-distribucion")
+    public ResponseEntity<?> createTransaccionConDistribucion(@RequestBody TransaccionConDistribucionRequest request, 
+                                                             Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            User user = userService.findByEmail(email);
+            
+            // Crear la transacción original (ingreso)
+            Transacciones transaccionOriginal = new Transacciones();
+            transaccionOriginal.setValor(request.getValor());
+            transaccionOriginal.setMotivo(request.getMotivo());
+            transaccionOriginal.setFecha(request.getFecha());
+            transaccionOriginal.setCategoria(request.getCategoria());
+            transaccionOriginal.setTipoGasto(request.getTipoGasto());
+            
+            user.setTransaccionesCreadas(user.getTransaccionesCreadas() + 1);
+            Transacciones transaccionCreada = transaccionesService.createTransaccion(transaccionOriginal, email);
+            
+            java.util.List<Transacciones> transaccionesDistribucion = new java.util.ArrayList<>();
+            
+            // Si es ingreso de dinero y se solicita distribución automática
+            if ("Ingreso de Dinero".equals(request.getCategoria()) && request.isDistribuirAutomaticamente()) {
+                transaccionesDistribucion = automationService.distribuirIngresoAutomaticamente(
+                    request.getValor(),
+                    request.getFecha(),
+                    email,
+                    request.getMotivo()
+                );
+            }
+            
+            return ResponseEntity.ok().body(java.util.Map.of(
+                "success", true,
+                "transaccionOriginal", transaccionCreada,
+                "transaccionesDistribucion", transaccionesDistribucion,
+                "totalDistribuidas", transaccionesDistribucion.size()
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of(
+                "success", false,
+                "error", "Error al crear transacción: " + e.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/crearPago/{mail}")
@@ -170,5 +218,62 @@ public class TransaccionesController {
         return new TransaccionesResponse(transaccionesFiltradas, transaccionesSinFiltrarCat);
     }
 
+    // Clase para el request de transacción con distribución automática
+    public static class TransaccionConDistribucionRequest {
+        private Double valor;
+        private String motivo;
+        private java.time.LocalDate fecha;
+        private String categoria;
+        private String tipoGasto;
+        private boolean distribuirAutomaticamente;
+
+        public Double getValor() {
+            return valor;
+        }
+
+        public void setValor(Double valor) {
+            this.valor = valor;
+        }
+
+        public String getMotivo() {
+            return motivo;
+        }
+
+        public void setMotivo(String motivo) {
+            this.motivo = motivo;
+        }
+
+        public java.time.LocalDate getFecha() {
+            return fecha;
+        }
+
+        public void setFecha(java.time.LocalDate fecha) {
+            this.fecha = fecha;
+        }
+
+        public String getCategoria() {
+            return categoria;
+        }
+
+        public void setCategoria(String categoria) {
+            this.categoria = categoria;
+        }
+
+        public String getTipoGasto() {
+            return tipoGasto;
+        }
+
+        public void setTipoGasto(String tipoGasto) {
+            this.tipoGasto = tipoGasto;
+        }
+
+        public boolean isDistribuirAutomaticamente() {
+            return distribuirAutomaticamente;
+        }
+
+        public void setDistribuirAutomaticamente(boolean distribuirAutomaticamente) {
+            this.distribuirAutomaticamente = distribuirAutomaticamente;
+        }
+    }
 
 }

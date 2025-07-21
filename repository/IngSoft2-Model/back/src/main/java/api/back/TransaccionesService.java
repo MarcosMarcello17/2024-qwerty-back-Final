@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class TransaccionesService {
@@ -81,9 +82,7 @@ public class TransaccionesService {
     public List<Transacciones> getTransaccionesFiltradas(Long userId, String categoria, Integer anio, Integer mes) {
         LocalDate startDate = null;
         LocalDate endDate = null;
-        if (anio == null && mes != null) {
-            anio = 2024;
-        }
+        
         // Si la categoría no es null o "Todas" y anio y mes son null
         if (categoria != null && !categoria.equals("Todas") && anio == null && mes == null) {
             return transaccionesRepository.findByUserIdAndCategoriaOrderByFechaDesc(userId, categoria);
@@ -101,8 +100,11 @@ public class TransaccionesService {
                 endDate = LocalDate.of(anio, 12, 31);
                 return transaccionesRepository.findByUserIdAndCategoriaAndFechaBetween(userId, categoria, startDate, endDate);
             } else if (mes != null) {
-                // Si solo el mes es proporcionado, debes decidir cómo manejarlo
-                // Aquí puedes decidir no realizar ninguna consulta o lanzar una excepción
+                // Si solo el mes es proporcionado, filtrar todas las transacciones por mes (sin importar el año)
+                return transaccionesRepository.findByUserIdAndCategoriaOrderByFechaDesc(userId, categoria)
+                    .stream()
+                    .filter(transaccion -> transaccion.getFecha().getMonthValue() == mes)
+                    .collect(Collectors.toList());
             }
         }
         // Si la categoría es null o "Todas" pero anio o mes no son null
@@ -118,13 +120,23 @@ public class TransaccionesService {
                 endDate = LocalDate.of(anio, 12, 31);
                 return transaccionesRepository.findByUserIdAndFechaBetween(userId, startDate, endDate);
             } else if (mes != null) {
-                // Si solo el mes es proporcionado, puedes decidir no realizar ninguna consulta o lanzar una excepción
+                // Si solo el mes es proporcionado, filtrar todas las transacciones por mes (sin importar el año)
+                return transaccionesRepository.findByUserIdOrderByFechaDesc(userId)
+                    .stream()
+                    .filter(transaccion -> transaccion.getFecha().getMonthValue() == mes)
+                    .collect(Collectors.toList());
             }
         }
         return transaccionesRepository.findByUserIdOrderByFechaDesc(userId);
-    
-        // Si no se cumplen condiciones, puedes devolver una lista vacía o lanzar una excepción
-        }
+    }
+
+    public Transacciones findByIdAndUserId(Long id, Long userId) {
+        return transaccionesRepository.findByIdAndUserId(id, userId).orElse(null);
+    }
+
+    public Transacciones saveTransaccion(Transacciones transaccion) {
+        return transaccionesRepository.save(transaccion);
+    }
     
 
 }
