@@ -28,6 +28,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final TransaccionesService transaccionesService;
+    private final TransaccionesPendientesService transaccionesPendientesService;
     private final UserService userService;
     private final PasswordResetTokenService passwordResetTokenService;
     private final PersonalTipoGastoService personalTipoGastoService;
@@ -37,6 +38,7 @@ public class AuthController {
     public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, JwtUtil jwtUtil,
             UserService userService, TransaccionesService transaccionesService,
+            TransaccionesPendientesService transaccionesPendientesService,
             PasswordResetTokenService passwordResetTokenService, PersonalTipoGastoService personalTipoGastoService,
             BudgetService budgetService, PersonalCategoriaService personalCategoriaService) {
         this.userRepository = userRepository;
@@ -46,6 +48,7 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
         this.transaccionesService = transaccionesService;
+        this.transaccionesPendientesService = transaccionesPendientesService;
         this.passwordResetTokenService = passwordResetTokenService;
         this.personalTipoGastoService = personalTipoGastoService;
         this.budgetService = budgetService;
@@ -67,7 +70,18 @@ public class AuthController {
                 // Continuamos con el proceso
             }
             
-            // 2. Eliminar transacciones
+            // 2. Eliminar transacciones pendientes
+            try {
+                List<TransaccionesPendientes> transaccionesPendientes = transaccionesPendientesService.getPendingTransaccionesByUserId(user.getId());
+                for (TransaccionesPendientes transaccionPendiente : transaccionesPendientes) {
+                    transaccionesPendientesService.delete(transaccionPendiente.getId());
+                }
+            } catch (Exception e) {
+                System.err.println("Error al eliminar transacciones pendientes: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+            
+            // 3. Eliminar transacciones
             try {
                 List<Transacciones> transacciones = transaccionesService.getTransaccionesByUserId(user.getId());
                 for (Transacciones transaction : transacciones) {
@@ -78,7 +92,7 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
             
-            // 3. Actualizar categorías personales y eliminarlas
+            // 4. Actualizar categorías personales y eliminarlas
             try {
                 List<PersonalCategoria> categorias = personalCategoriaService.getPersonalCategoria(user.getEmail());
                 for (PersonalCategoria categoria : categorias) {
@@ -101,7 +115,7 @@ public class AuthController {
                 // Continuamos con el proceso
             }
             
-            // 4. Eliminar tipos de gasto personales
+            // 5. Eliminar tipos de gasto personales
             try {
                 List<PersonalTipoGasto> personalTipoGastos = personalTipoGastoService
                         .getPersonalTipoGastos(user.getEmail());
@@ -113,7 +127,7 @@ public class AuthController {
                 // Continuamos con el proceso
             }
             
-            // 5. Eliminar tokens de reinicio de contraseña
+            // 6. Eliminar tokens de reinicio de contraseña
             try {
                 List<PasswordResetToken> tokens = passwordResetTokenService.getTokensByUser(user);
                 for (PasswordResetToken token : tokens) {
@@ -124,7 +138,7 @@ public class AuthController {
                 // Continuamos con el proceso
             }
             
-            // 6. Finalmente, eliminar el usuario
+            // 7. Finalmente, eliminar el usuario
             userService.deleteUser(user);
 
             return ResponseEntity.noContent().build();
