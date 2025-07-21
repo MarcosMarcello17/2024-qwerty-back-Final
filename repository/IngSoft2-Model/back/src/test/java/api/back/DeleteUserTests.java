@@ -28,7 +28,8 @@ public class DeleteUserTests {
     @Mock
     private PersonalCategoriaService personalCategoriaService;
     
-
+    @Mock
+    private TransaccionesPendientesService transaccionesPendientesService;
     
     @Mock
     private PersonalTipoGastoService personalTipoGastoService;
@@ -64,6 +65,9 @@ public class DeleteUserTests {
         
         List<Transacciones> emptyTransactions = new ArrayList<>();
         when(transaccionesService.getTransaccionesByUserId(mockUser.getId())).thenReturn(emptyTransactions);
+        
+        List<TransaccionesPendientes> emptyPendingTransactions = new ArrayList<>();
+        when(transaccionesPendientesService.getPendingTransaccionesByUserId(mockUser.getId())).thenReturn(emptyPendingTransactions);
         
         List<PersonalCategoria> emptyCategories = new ArrayList<>();
         when(personalCategoriaService.getPersonalCategoria(mockUser.getEmail())).thenReturn(emptyCategories);
@@ -104,6 +108,10 @@ public class DeleteUserTests {
         transactions.add(transaction);
         when(transaccionesService.getTransaccionesByUserId(mockUser.getId())).thenReturn(transactions);
         
+        // Mock empty pending transactions
+        List<TransaccionesPendientes> emptyPendingTransactions = new ArrayList<>();
+        when(transaccionesPendientesService.getPendingTransaccionesByUserId(mockUser.getId())).thenReturn(emptyPendingTransactions);
+        
         // Mock empty lists for the rest
         when(personalCategoriaService.getPersonalCategoria(mockUser.getEmail())).thenReturn(new ArrayList<>());
         when(personalTipoGastoService.getPersonalTipoGastos(mockUser.getEmail())).thenReturn(new ArrayList<>());
@@ -131,6 +139,10 @@ public class DeleteUserTests {
         
         // Mock empty budgets
         when(budgetService.getPresupuestosByUserId(mockUser)).thenReturn(new ArrayList<>());
+        
+        // Mock empty pending transactions
+        List<TransaccionesPendientes> emptyPendingTransactions = new ArrayList<>();
+        when(transaccionesPendientesService.getPendingTransaccionesByUserId(mockUser.getId())).thenReturn(emptyPendingTransactions);
         
         // Mock transactions with exception
         List<Transacciones> transactions = new ArrayList<>();
