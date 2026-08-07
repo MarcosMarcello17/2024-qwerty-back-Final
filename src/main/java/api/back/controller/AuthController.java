@@ -27,6 +27,7 @@ import api.back.model.Transacciones;
 import api.back.model.TransaccionesPendientes;
 import api.back.model.User;
 import api.back.repository.UserRepository;
+import api.back.service.AuthService;
 import api.back.service.BudgetService;
 import api.back.service.PasswordResetTokenService;
 import api.back.service.PersonalCategoriaService;
@@ -52,13 +53,14 @@ public class AuthController {
     private final PersonalTipoGastoService personalTipoGastoService;
     private final PersonalCategoriaService personalCategoriaService;
     private final BudgetService budgetService;
+    private final AuthService authService;
 
     public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, JwtUtil jwtUtil,
             UserService userService, TransaccionesService transaccionesService,
             TransaccionesPendientesService transaccionesPendientesService,
             PasswordResetTokenService passwordResetTokenService, PersonalTipoGastoService personalTipoGastoService,
-            BudgetService budgetService, PersonalCategoriaService personalCategoriaService) {
+            BudgetService budgetService, PersonalCategoriaService personalCategoriaService, AuthService authService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.personalCategoriaService = personalCategoriaService;
@@ -70,6 +72,7 @@ public class AuthController {
         this.passwordResetTokenService = passwordResetTokenService;
         this.personalTipoGastoService = personalTipoGastoService;
         this.budgetService = budgetService;
+        this.authService = authService;
     }
 
     @DeleteMapping
@@ -173,6 +176,9 @@ public class AuthController {
         if (optionalUser.isPresent()) {
             return new ResponseEntity<>("El e-mail ya fue utilizado. Intente iniciar sesion",
                     HttpStatus.CONFLICT);
+        }
+        if(!authService.isPasswordValid(user.getPassword())){
+            return new ResponseEntity<>("La contraseña no cumple con los requerimientos", HttpStatus.CONFLICT);
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
