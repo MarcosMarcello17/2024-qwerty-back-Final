@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import api.back.model.User;
+import api.back.service.AuthService;
 import api.back.service.UserService;
 import api.back.util.JwtUtil;
 
@@ -35,12 +36,14 @@ public class AuthControllerTests {
     private AuthController authController;
     @Autowired
     private UserService userService;
+    @Autowired
+    private AuthService authService;
 
     @Test
     public void testRegistrarNuevoUsuario() {
         User user = new User();
         user.setEmail("unique@example.com");
-        user.setPassword(passwordEncoder.encode("password"));
+        user.setPassword(passwordEncoder.encode("123Contr@sena"));
         ResponseEntity<String> response = authController.register(user);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         userService.deleteUser(user);
@@ -89,7 +92,7 @@ public class AuthControllerTests {
         AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         JwtUtil jwtUtil = mock(JwtUtil.class);
         AuthController authController = new AuthController(null, null,
-                authenticationManager, jwtUtil, null, null,  null, null, null, null, null);
+                authenticationManager, jwtUtil, null, null, null, null, null, null, null, null);
 
         when(authenticationManager.authenticate(any(
                 UsernamePasswordAuthenticationToken.class)))
@@ -105,7 +108,7 @@ public class AuthControllerTests {
         String email = "valid@example.com";
         UserService userService = mock(UserService.class);
         AuthController authController = new AuthController(null, null, null, null,
-                userService, null, null, null, null, null, null);
+                userService, null, null, null, null, null, null, null);
 
         ResponseEntity<String> response = authController.forgotPassword(email);
 
@@ -118,11 +121,11 @@ public class AuthControllerTests {
     @Test
     public void test_reset_password_with_valid_token() {
         UserService userService = Mockito.mock(UserService.class);
-        AuthController authController = new AuthController(null, null, null, null,
-                userService, null, null, null, null, null, null);
+        AuthController authController = new AuthController(null, null, null, null, userService, null, null, null, null,
+                null, null, authService);
 
         String validToken = "validToken";
-        String newPassword = "newPassword";
+        String newPassword = "123Contr@sena";
 
         Mockito.when(userService.resetPassword(validToken,
                 newPassword)).thenReturn(true);
@@ -140,10 +143,10 @@ public class AuthControllerTests {
     public void test_reset_password_with_expired_token() {
         UserService userService = Mockito.mock(UserService.class);
         AuthController authController = new AuthController(null, null, null, null, userService, null, null, null, null,
-                null, null);
+                null, null, authService);
 
         String expiredToken = "expiredToken";
-        String newPassword = "newPassword";
+        String newPassword = "newP@ssw0rd";
 
         Mockito.when(userService.resetPassword(expiredToken, newPassword)).thenReturn(false);
 

@@ -39,7 +39,8 @@ import api.back.util.JwtUtil;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = { "http://localhost:5173/", "http://127.0.0.1:5173", "https://2024-qwerty-front-final.vercel.app/"})
+@CrossOrigin(origins = { "http://localhost:5173/", "http://127.0.0.1:5173",
+        "https://2024-qwerty-front-final.vercel.app/" })
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -79,7 +80,7 @@ public class AuthController {
     public ResponseEntity<Void> deleteUser(Authentication authentication) {
         try {
             User user = userService.findByEmail(authentication.getName());
-            
+
             // 1. Eliminar presupuestos
             try {
                 List<Budget> presupuestos = budgetService.getPresupuestosByUserId(user);
@@ -90,10 +91,11 @@ public class AuthController {
                 System.err.println("Error al eliminar presupuestos: " + e.getMessage());
                 // Continuamos con el proceso
             }
-            
+
             // 2. Eliminar transacciones pendientes
             try {
-                List<TransaccionesPendientes> transaccionesPendientes = transaccionesPendientesService.getPendingTransaccionesByUserId(user.getId());
+                List<TransaccionesPendientes> transaccionesPendientes = transaccionesPendientesService
+                        .getPendingTransaccionesByUserId(user.getId());
                 for (TransaccionesPendientes transaccionPendiente : transaccionesPendientes) {
                     transaccionesPendientesService.delete(transaccionPendiente.getId());
                 }
@@ -101,7 +103,7 @@ public class AuthController {
                 System.err.println("Error al eliminar transacciones pendientes: " + e.getMessage());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
-            
+
             // 3. Eliminar transacciones
             try {
                 List<Transacciones> transacciones = transaccionesService.getTransaccionesByUserId(user.getId());
@@ -112,15 +114,17 @@ public class AuthController {
                 System.err.println("Error al eliminar transacciones: " + e.getMessage());
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
-            
+
             // 4. Actualizar categorías personales y eliminarlas
             try {
                 List<PersonalCategoria> categorias = personalCategoriaService.getPersonalCategoria(user.getEmail());
                 for (PersonalCategoria categoria : categorias) {
                     try {
-                        List<Transacciones> transaccionesUser = transaccionesService.getTransaccionesByUserId(user.getId());
+                        List<Transacciones> transaccionesUser = transaccionesService
+                                .getTransaccionesByUserId(user.getId());
                         for (Transacciones transaccion : transaccionesUser) {
-                            if (transaccion.getCategoria() != null && transaccion.getCategoria().equals(categoria.getNombre())) {
+                            if (transaccion.getCategoria() != null
+                                    && transaccion.getCategoria().equals(categoria.getNombre())) {
                                 transaccion.setCategoria("Otros");
                                 transaccionesService.saveTransaccion(transaccion);
                             }
@@ -128,14 +132,15 @@ public class AuthController {
                         personalCategoriaService.findAndDeleteCategoria(user.getEmail(), categoria.getNombre(),
                                 categoria.getIconPath());
                     } catch (Exception e) {
-                        System.err.println("Error al procesar categoría " + categoria.getNombre() + ": " + e.getMessage());
+                        System.err.println(
+                                "Error al procesar categoría " + categoria.getNombre() + ": " + e.getMessage());
                     }
                 }
             } catch (Exception e) {
                 System.err.println("Error al eliminar categorías: " + e.getMessage());
                 // Continuamos con el proceso
             }
-            
+
             // 5. Eliminar tipos de gasto personales
             try {
                 List<PersonalTipoGasto> personalTipoGastos = personalTipoGastoService
@@ -147,7 +152,7 @@ public class AuthController {
                 System.err.println("Error al eliminar tipos de gasto: " + e.getMessage());
                 // Continuamos con el proceso
             }
-            
+
             // 6. Eliminar tokens de reinicio de contraseña
             try {
                 List<PasswordResetToken> tokens = passwordResetTokenService.getTokensByUser(user);
@@ -158,7 +163,7 @@ public class AuthController {
                 System.err.println("Error al eliminar tokens: " + e.getMessage());
                 // Continuamos con el proceso
             }
-            
+
             // 7. Finalmente, eliminar el usuario
             userService.deleteUser(user);
 
@@ -177,7 +182,7 @@ public class AuthController {
             return new ResponseEntity<>("El e-mail ya fue utilizado. Intente iniciar sesion",
                     HttpStatus.CONFLICT);
         }
-        if(!authService.isPasswordValid(user.getPassword())){
+        if (!authService.isPasswordValid(user.getPassword())) {
             return new ResponseEntity<>("La contraseña no cumple con los requerimientos", HttpStatus.CONFLICT);
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -204,12 +209,14 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
+        if (!authService.isPasswordValid(newPassword)) {
+            return new ResponseEntity<>("La contraseña no cumple con los requerimientos", HttpStatus.CONFLICT);
+        }
         boolean success = userService.resetPassword(token, newPassword);
-        if (success) {
-            return ResponseEntity.ok("Contraseña restablecida exitosamente.");
-        } else {
+        if (!success) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token expirado o no válido.");
         }
+        return ResponseEntity.ok("Contraseña restablecida exitosamente.");
     }
 
 }

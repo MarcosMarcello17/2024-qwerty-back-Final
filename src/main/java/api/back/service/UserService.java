@@ -4,6 +4,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,9 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final JavaMailSender mailSender;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
             PasswordResetTokenRepository passwordResetTokenRepository,
@@ -87,7 +91,7 @@ public class UserService implements UserDetailsService {
         message.setTo(user.getEmail());
         message.setSubject("Restablecimiento de Contraseña");
         message.setText("Para restablecer su contraseña, haga clic en el siguiente enlace: " +
-                "https://2024-qwerty-front-2.vercel.app/reset-password?token=" + token.getToken() + " \nEl enlace expira en 1 hora");
+                frontendUrl + "/reset-password?token=" + token.getToken() + " \nEl enlace expira en 1 hora");
 
         mailSender.send(message);
     }
