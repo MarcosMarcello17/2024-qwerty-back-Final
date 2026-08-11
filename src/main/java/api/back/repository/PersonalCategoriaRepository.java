@@ -11,4 +11,6 @@ import java.util.List;
 @Repository
 public interface PersonalCategoriaRepository extends JpaRepository<PersonalCategoria, Long> {
     List<PersonalCategoria> findByUser(User user);
+
+    List<PersonalCategoria> findByUserOrUserIsNull(User user);
 }

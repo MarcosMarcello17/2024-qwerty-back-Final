@@ -24,7 +24,7 @@ public class PersonalCategoriaService {
     public List<PersonalCategoria> getPersonalCategoria(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return personalCategoriaRepository.findByUser(user);
+        return personalCategoriaRepository.findByUserOrUserIsNull(user);
     }
 
     public PersonalCategoria addPersonalCategoria(String email, String nombre, String iconPath) {
