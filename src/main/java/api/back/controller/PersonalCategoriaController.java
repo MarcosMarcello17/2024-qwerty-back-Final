@@ -43,16 +43,18 @@ public class PersonalCategoriaController {
     }
 
     @PostMapping
-    public ResponseEntity<CategoriaRequest> addPersonalCategoria(@RequestBody CategoriaRequest categoria,
+    public ResponseEntity<?> addPersonalCategoria(@RequestBody CategoriaRequest categoria,
             Authentication authentication) {
         String email = authentication.getName();
-        if (personalCategoriaService.checkIfNotExist(email, categoria)) {
-            personalCategoriaService.addPersonalCategoria(email, categoria.getNombre(), categoria.getIconPath());
-            CategoriaRequest categoriaResponse = new CategoriaRequest(categoria.getNombre(), categoria.getIconPath());
-            return ResponseEntity.ok(categoriaResponse);
-        } else {
-            return ResponseEntity.badRequest().build();
+        if (categoria.getIconPath().isEmpty() || categoria.getNombre().isEmpty()) {
+            return ResponseEntity.badRequest().body("Icono o nombre no identificados");
         }
+        if (!personalCategoriaService.checkIfNotExist(email, categoria)) {
+            return ResponseEntity.badRequest().body("La categoria ya existe");
+        }
+        personalCategoriaService.addPersonalCategoria(email, categoria.getNombre(), categoria.getIconPath());
+        CategoriaRequest categoriaResponse = new CategoriaRequest(categoria.getNombre(), categoria.getIconPath());
+        return ResponseEntity.ok(categoriaResponse);
     }
 
     @DeleteMapping
@@ -93,7 +95,8 @@ public class PersonalCategoriaController {
                     }
                 }
                 if (found) {
-                    List<Transacciones> transaccionesUser = transaccionesController.getTransaccionesByUser(authentication);
+                    List<Transacciones> transaccionesUser = transaccionesController
+                            .getTransaccionesByUser(authentication);
                     for (Transacciones transaccion : transaccionesUser) {
                         if (transaccion.getCategoria().equals(nombre)) {
                             transaccion.setCategoria(newCategoria.getNombre());
