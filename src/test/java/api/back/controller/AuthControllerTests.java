@@ -43,7 +43,7 @@ public class AuthControllerTests {
     public void testRegistrarNuevoUsuario() {
         User user = new User();
         user.setEmail("unique@example.com");
-        user.setPassword(passwordEncoder.encode("123Contr@sena"));
+        user.setPassword("123Contr@sena");
         ResponseEntity<String> response = authController.register(user);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         userService.deleteUser(user);
