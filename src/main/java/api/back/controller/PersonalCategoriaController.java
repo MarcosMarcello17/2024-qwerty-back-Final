@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import api.back.exception.PersonalCategoriaNotValidException;
 import api.back.exception.TransaccionNotFoundException;
 import api.back.model.CategoriaRequest;
 import api.back.model.PersonalCategoria;
@@ -43,18 +44,22 @@ public class PersonalCategoriaController {
     }
 
     @PostMapping
-    public ResponseEntity<?> addPersonalCategoria(@RequestBody CategoriaRequest categoria,
+    public ResponseEntity<CategoriaRequest> addPersonalCategoria(@RequestBody CategoriaRequest categoria,
             Authentication authentication) {
-        String email = authentication.getName();
-        if (categoria.getIconPath().isEmpty() || categoria.getNombre().isEmpty()) {
-            return ResponseEntity.badRequest().body("Icono o nombre no identificados");
+        try {
+            String email = authentication.getName();
+            if (categoria.getIconPath().isEmpty() || categoria.getNombre().isEmpty()) {
+                throw new PersonalCategoriaNotValidException("Icono o nombre no identificados");
+            }
+            if (!personalCategoriaService.checkIfNotExist(email, categoria)) {
+                throw new PersonalCategoriaNotValidException("La categoria ya existe");
+            }
+            personalCategoriaService.addPersonalCategoria(email, categoria.getNombre(), categoria.getIconPath());
+            CategoriaRequest categoriaResponse = new CategoriaRequest(categoria.getNombre(), categoria.getIconPath());
+            return ResponseEntity.ok(categoriaResponse);
+        } catch (PersonalCategoriaNotValidException e) {
+            return ResponseEntity.badRequest().build();
         }
-        if (!personalCategoriaService.checkIfNotExist(email, categoria)) {
-            return ResponseEntity.badRequest().body("La categoria ya existe");
-        }
-        personalCategoriaService.addPersonalCategoria(email, categoria.getNombre(), categoria.getIconPath());
-        CategoriaRequest categoriaResponse = new CategoriaRequest(categoria.getNombre(), categoria.getIconPath());
-        return ResponseEntity.ok(categoriaResponse);
     }
 
     @DeleteMapping
