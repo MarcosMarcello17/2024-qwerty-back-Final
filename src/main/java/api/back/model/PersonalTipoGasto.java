@@ -10,7 +10,7 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public class PersonalTipoGasto {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,9 +25,9 @@ public class PersonalTipoGasto {
         this.nombre = nombre;
     }
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;  // Relación con el usuario
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user; // Relación con el usuario
 
     public Long getId() {
         return id;

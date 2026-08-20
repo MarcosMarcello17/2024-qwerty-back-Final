@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import api.back.exception.PersonalTipoGastoNotValidException;
 import api.back.model.PersonalTipoGasto;
 import api.back.model.Transacciones;
 import api.back.service.PersonalTipoGastoService;
@@ -36,6 +37,9 @@ public class PersonalTipoGastoController {
         String email = authentication.getName();
         // Quitar las comillas dobles y las llaves del texto si es necesario
         nombre = nombre.trim().replaceAll("\"", "");
+        if (nombre.isEmpty()) {
+            throw new PersonalTipoGastoNotValidException("Ingrese un medio de pago valido");
+        }
         return personalTipoGastoService.addPersonalTipoGasto(email, nombre);
     }
 

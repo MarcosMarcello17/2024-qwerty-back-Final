@@ -12,5 +12,8 @@ import java.util.Optional;
 @Repository
 public interface PersonalTipoGastoRepository extends JpaRepository<PersonalTipoGasto, Long> {
     List<PersonalTipoGasto> findByUser(User user);
+
     Optional<PersonalTipoGasto> findByUserAndNombre(User user, String nombre);
+
+    List<PersonalTipoGasto> findByUserOrUserIsNull(User user);
 }
